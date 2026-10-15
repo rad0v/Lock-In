@@ -1,0 +1,265 @@
+{
+  "meta": {
+    "version": 1,
+    "updated": "2026-10-15",
+    "phase": "1",
+    "source": "design-context/1.png through design-context/27.png",
+    "status": "Implementation baseline; sampled colors verified, font and geometry require device comparison",
+    "units": {
+      "dimensions": "React Native logical layout units",
+      "typography": "scalable logical text units",
+      "durations": "milliseconds"
+    },
+    "provenance": {
+      "semanticColors": "RGB values sampled from original PNGs; see design.md for reference IDs",
+      "neutralScale": "Labels in reference 22",
+      "typeScale": "Labels in reference 23",
+      "font": "Inter is provisional; original family not supplied",
+      "geometry": "Inferred from raster exports of different sizes",
+      "motion": "Project-defined; static references do not specify animation"
+    }
+  },
+  "color": {
+    "canvas": {
+      "setup": "#F4EFE6",
+      "focus": "#F4F1EA"
+    },
+    "surface": {
+      "panel": "#FAF7F2",
+      "tracking": "#FAF6F0",
+      "card": "#E6E1DA",
+      "hero": "#C9C4BB",
+      "input": "#FFFFFF",
+      "logAction": "#FEF8F7"
+    },
+    "ink": {
+      "primary": "#251F1A",
+      "focus": "#0D0805",
+      "secondary": "#4D4540",
+      "muted": "#807C77",
+      "onDark": "#FFFFFF"
+    },
+    "action": {
+      "primary": "#251F1A",
+      "selected": "#1B1A19"
+    },
+    "accent": {
+      "mint": "#6CF8BB"
+    },
+    "success": {
+      "foreground": "#00714D",
+      "background": "#A9EDCA"
+    },
+    "danger": {
+      "foreground": "#BA1A1A",
+      "background": "#E9BFBB"
+    },
+    "calendar": {
+      "success": "#BBD4C7"
+    },
+    "border": {
+      "strong": "#251F1A",
+      "subtle": "#E6E1DA"
+    },
+    "overlay": "rgba(13, 8, 5, 0.42)",
+    "neutralReference": {
+      "lighter": "#FAF8F4",
+      "lightHover": "#F9F6F2",
+      "lightActive": "#F8F5EF",
+      "normal": "#F4EFE6",
+      "normalHover": "#CFCBC4",
+      "normalActive": "#B2AEA8",
+      "dark": "#555451",
+      "darkHover": "#3D3C3A",
+      "darkActive": "#1B1A19"
+    }
+  },
+  "typography": {
+    "family": "Inter",
+    "familyConfirmed": false,
+    "weights": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "referenceScale": {
+      "ratio": 1.25,
+      "headings": [
+        38,
+        30,
+        24,
+        19,
+        15
+      ],
+      "body": [
+        23,
+        19,
+        15,
+        12,
+        10,
+        8
+      ]
+    },
+    "roles": {
+      "detailTitle": {
+        "fontSize": 38,
+        "lineHeight": 40,
+        "fontWeight": 700
+      },
+      "screenTitle": {
+        "fontSize": 30,
+        "lineHeight": 38,
+        "fontWeight": 700
+      },
+      "brand": {
+        "fontSize": 24,
+        "lineHeight": 30,
+        "fontWeight": 700
+      },
+      "modalTitle": {
+        "fontSize": 24,
+        "lineHeight": 30,
+        "fontWeight": 700
+      },
+      "cardTitle": {
+        "fontSize": 19,
+        "lineHeight": 24,
+        "fontWeight": 700
+      },
+      "body": {
+        "fontSize": 15,
+        "lineHeight": 24,
+        "fontWeight": 400
+      },
+      "field": {
+        "fontSize": 15,
+        "lineHeight": 24,
+        "fontWeight": 400
+      },
+      "button": {
+        "fontSize": 12,
+        "lineHeight": 16,
+        "fontWeight": 600,
+        "letterSpacing": 0.8
+      },
+      "sectionLabel": {
+        "fontSize": 12,
+        "lineHeight": 16,
+        "fontWeight": 600,
+        "letterSpacing": 1.8
+      },
+      "metadata": {
+        "fontSize": 12,
+        "lineHeight": 16,
+        "fontWeight": 400
+      }
+    },
+    "allowFontScaling": true
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "xxl": 32,
+    "section": 40,
+    "large": 48,
+    "hero": 64
+  },
+  "layout": {
+    "referenceWidth": 390,
+    "testWidths": [
+      360,
+      390,
+      412
+    ],
+    "outerGutter": 16,
+    "panelPadding": 24,
+    "cardPadding": 16,
+    "headerHeight": 56,
+    "tabBarHeight": 64,
+    "setupPanelTop": 112,
+    "maxContentWidth": 480,
+    "modalMaxWidth": 420,
+    "minTouchSize": 48,
+    "primaryButtonMinHeight": 56,
+    "trackingRowMinHeight": 76,
+    "progressHeight": 3
+  },
+  "radius": {
+    "square": 0,
+    "control": 2,
+    "card": 28,
+    "modal": 32,
+    "setupPanel": 36,
+    "pill": 999
+  },
+  "border": {
+    "thin": 1,
+    "emphasis": 2
+  },
+  "backingShadow": {
+    "choice": {
+      "offsetX": 3,
+      "offsetY": 4,
+      "color": "#251F1A"
+    },
+    "setupPanel": {
+      "offsetX": 2,
+      "offsetY": 4,
+      "color": "#251F1A"
+    }
+  },
+  "motion": {
+    "duration": {
+      "press": 80,
+      "release": 120,
+      "selection": 140,
+      "stepEnter": 220,
+      "stepExit": 160,
+      "stepProgress": 220,
+      "screen": 220,
+      "modalEnter": 200,
+      "modalExit": 150,
+      "backdrop": 160,
+      "progress": 240,
+      "listEnter": 200,
+      "listExit": 160,
+      "listLayout": 220,
+      "state": 180,
+      "lock": 280,
+      "reward": 300,
+      "reducedFade": 100
+    },
+    "transform": {
+      "pressedOffsetX": 2,
+      "pressedOffsetY": 2,
+      "stepDistance": 16,
+      "modalInitialScale": 0.97
+    },
+    "easing": {
+      "enter": [
+        0.16,
+        1,
+        0.3,
+        1
+      ],
+      "exit": [
+        0.4,
+        0,
+        1,
+        1
+      ],
+      "state": [
+        0.2,
+        0,
+        0,
+        1
+      ]
+    },
+    "reducedMotion": "Respect system; disable movement and scale, use immediate changes or <=100ms fade",
+    "hapticsDefault": true
+  }
+}

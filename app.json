@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "LockIn",
+    "slug": "lockin",
+    "scheme": "lockin",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F4F1EA",
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-splash-screen",
+      "expo-notifications"
+    ],
+    "android": {
+      "package": "com.lockin.habits"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "LockIn"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
