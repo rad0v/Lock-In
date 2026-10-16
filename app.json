@@ -13,7 +13,8 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-splash-screen",
-      "expo-notifications"
+      "expo-notifications",
+      "@clerk/expo"
     ],
     "android": {
       "package": "com.lockin.habits"
@@ -25,6 +26,12 @@
     },
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "42598f78-df72-4910-bdc9-aa3fd32154a0"
+      }
     }
   }
 }

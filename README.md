@@ -9,10 +9,12 @@ The browser preview is served at **http://127.0.0.1:4173** while the preview pro
 The Expo server is also started for Android testing on the same local network. Open Expo Go and scan [the Android QR code](artifacts/phase-4/android-expo-go.png), or enter the URL in [android-url.txt](artifacts/phase-4/android-url.txt). This address is tied to the computer's current network and port 8081. If the server is stopped or the network changes, run:
 
 ```powershell
-npm start -- --go --lan
+npm start -- --go --lan --clear
 ```
 
 No Android SDK or emulator was available in this workspace, so a native device session and an installable APK have not been verified. The Android JavaScript/Hermes bundle compiled successfully. A compiled bundle is not an APK; use Expo Go for this round of Android testing.
+
+The current Expo Go binary on the test phone lacks a native notification module required by this project's installed notifications package. LockIn now skips loading that package inside Expo Go so the rest of the app can be tested there. Daily reminders are disabled in Expo Go and require a LockIn development build. The Settings screen explains this limit.
 
 ## Implemented
 
@@ -49,11 +51,11 @@ Browser tests use an isolated Microsoft Edge profile and a 390 × 844 viewport, 
 
 ## Connect Clerk and Supabase next
 
-Follow [the integration handoff](docs/cloud-integration.md). Clerk owns sign-in; Supabase accepts its session tokens for private database access. No cloud projects are connected yet. **Do not apply the legacy Phase 2–4 SQL prototype for Clerk**: its ownership model requires replacement, along with transactional server lifecycle functions. Merely filling `.env.local` will not enable the disabled legacy client.
+Follow [the integration handoff](docs/cloud-integration.md). Clerk owns sign-in; Supabase accepts its session tokens for private database access. The user reports successful execution of the Clerk-compatible migration; live app access and account isolation still need testing. **Do not apply the legacy Phase 2–4 SQL prototype for Clerk**.
 
 Local device data is separate from cloud accounts. There is no automatic migration of guest commitments into a cloud account in this build.
 
-`eas.json` includes an internal APK profile (`preview`). Creating it later requires Expo account/project configuration. For a development client, install the SDK-compatible `expo-dev-client` package before using the `development` build profile.
+`eas.json` includes an internal APK profile (`preview`) and a development profile. `expo-dev-client` is installed; building the development app still requires Expo account/project configuration. Use that build to test native reminders on the phone.
 
 ## Project map
 

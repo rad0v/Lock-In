@@ -50,7 +50,7 @@ This file records the capabilities and project practices needed to build LockIn,
 - Read the stored behavior contract and revisited original broken/paused/reflection PNGs with image tools; originals remain unchanged.
 - Implemented pure lifecycle and reminder-planning functions with injected clocks/storage, serialized atomic local changes, and retry-safe notification scheduling.
 - Verified 34 domain/storage/reminder cases and 10 isolated Edge journeys, including normal/reduced motion. Reviewed screenshots and compiled web and Android/Hermes bundles.
-- Used official [Expo Notifications SDK 57 documentation](https://docs.expo.dev/versions/v57.0.0/sdk/notifications/) and installed native package source for compatible APIs, permission handling, local Expo Go support, and Android's inexact-alarm fallback.
+- Used official [Expo Notifications SDK 57 documentation](https://docs.expo.dev/versions/v57.0.0/sdk/notifications/) and installed native package source for compatible APIs, permission handling, and Android's inexact-alarm fallback. Phone testing showed this Expo Go binary lacks a required notifications submodule; the app now defers package loading and disables reminders in Expo Go. Reminder delivery needs a LockIn development build.
 - Checked official Clerk/Supabase integration documentation and recorded a separate handoff. Live services and Clerk SDK setup are deferred until the next milestone.
 - No new Codex skills/plugins or subagents were used. Android device verification is still pending; Phase 7 release checks were not implemented.
 

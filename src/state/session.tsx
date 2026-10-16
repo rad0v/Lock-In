@@ -1,7 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { useAuth, useUser } from "@clerk/expo";
 import { clearReminders } from "../lib/notifications";
 
 type Identity = {
@@ -14,42 +19,39 @@ type Context = {
   identity: Identity | null;
   loading: boolean;
   error: string | null;
+  getToken: () => Promise<string | null>;
   enterDevice: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 const SessionContext = createContext<Context | null>(null);
 const localSessionKey = "lockin.device-session.v1";
-function cloudIdentity(session: Session): Identity {
-  return {
-    key: session.user.id,
-    mode: "cloud",
-    name:
-      session.user.user_metadata?.full_name ||
-      session.user.email?.split("@")[0] ||
-      "",
-    email: session.user.email,
-  };
-}
 
 export function SessionProvider({ children }: React.PropsWithChildren) {
+  const auth = useAuth();
+  const { user } = useUser();
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
     const initialize = async () => {
+      if (!auth.isLoaded) return;
       try {
         const local = await AsyncStorage.getItem(localSessionKey);
-        const result = supabase ? await supabase.auth.getSession() : null;
-        if (result?.error) throw result.error;
-        if (alive)
+        if (!alive) return;
+        if (auth.isSignedIn && auth.userId) {
+          setIdentity({
+            key: auth.userId,
+            mode: "cloud",
+            name: user?.fullName || user?.firstName || "",
+            email: user?.primaryEmailAddress?.emailAddress,
+          });
+          await AsyncStorage.removeItem(localSessionKey);
+        } else
           setIdentity(
-            result?.data.session
-              ? cloudIdentity(result.data.session)
-              : local
-                ? { key: "device", mode: "device", name: "" }
-                : null,
+            local ? { key: "device", mode: "device", name: "" } : null,
           );
+        setError(null);
       } catch {
         if (alive)
           setError("Your session could not be restored. Please sign in again.");
@@ -58,29 +60,20 @@ export function SessionProvider({ children }: React.PropsWithChildren) {
       }
     };
     void initialize();
-    const subscription = supabase?.auth.onAuthStateChange((_event, session) => {
-      if (!alive) return;
-      if (session) {
-        setIdentity(cloudIdentity(session));
-        void AsyncStorage.removeItem(localSessionKey);
-      } else
-        setIdentity((current) => (current?.mode === "device" ? current : null));
-    });
     return () => {
       alive = false;
-      subscription?.data.subscription.unsubscribe();
     };
-  }, []);
+  }, [auth.isLoaded, auth.isSignedIn, auth.userId, user]);
   const enterDevice = async () => {
     await AsyncStorage.setItem(localSessionKey, "1");
     setError(null);
     setIdentity({ key: "device", mode: "device", name: "" });
   };
+  const getToken = useCallback(() => auth.getToken(), [auth.getToken]);
   const signOut = async () => {
     await clearReminders();
-    if (identity?.mode === "cloud" && supabase) {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw new Error("Could not sign out. Please try again.");
+    if (identity?.mode === "cloud") {
+      await auth.signOut();
       await AsyncStorage.multiRemove([
         `lockin.cache.${identity.key}`,
         `lockin.draft.${identity.key}`,
@@ -91,7 +84,14 @@ export function SessionProvider({ children }: React.PropsWithChildren) {
   };
   return (
     <SessionContext.Provider
-      value={{ identity, loading, error, enterDevice, signOut }}
+      value={{
+        identity,
+        loading: loading || !auth.isLoaded,
+        error,
+        getToken,
+        enterDevice,
+        signOut,
+      }}
     >
       {children}
     </SessionContext.Provider>

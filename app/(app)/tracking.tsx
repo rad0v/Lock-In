@@ -16,7 +16,7 @@ export default function Tracking() {
       header={<Header back label="Today's Tracking" />}
       contentStyle={{ gap: 16, paddingTop: 24 }}
     >
-      {error && <Notice message={error} onRetry={() => void refresh()} />}{" "}
+      {error && <Notice message={error} onRetry={() => void refresh()} />}
       {!rows.length && <Label>No commitments due today.</Label>}
       {rows.map((row) => (
         <TrackingRow

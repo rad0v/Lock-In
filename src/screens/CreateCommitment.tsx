@@ -401,7 +401,6 @@ export default function CreateCommitment() {
           )}
           {step === 3 && editor === "dates" && (
             <View style={{ gap: 20, paddingBottom: 24 }}>
-              {" "}
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <Button
                   light

@@ -26,7 +26,8 @@ The user authorized Phases 2–4 at **GPT-6.1 Sol / High**, then approved contin
 - Reminders: native opt-in permission, quiet Android channel, chosen wall-clock time per attempt zone, private content, cancellation/rescheduling, retry after native scheduling failure, tap routing to the logical date, test reminder, sign-out cleanup. Browser shows availability accurately.
 - Verification: 34 domain/storage/reminder tests; 10 browser journeys covering original flows plus lifecycle/preferences/motion; TypeScript and web/Android Hermes exports pass. Screenshot evidence is in `artifacts/phase-6/`.
 - Native notification delivery, actual vibration, Android animation feel, keyboard/back and installation remain device checks. The environment has no configured Android SDK/emulator; no native runtime result is claimed.
-- Clerk/Supabase handoff: [connection plan](docs/cloud-integration.md). Old Supabase Auth code is disabled and its undeployed SQL prototype is clearly marked as incompatible with Clerk subjects. Live connection has not started.
+- Clerk/Supabase connection: all three public environment values are present; Clerk powers the custom sign-in, sign-up/verification, Google, reset, restoration, and sign-out flows. Supabase receives Clerk session tokens. The user reports successful execution of the Clerk-owner RLS/RPC migration and working phone sign-in plus cloud commitment creation on 16 October. Persistence, account isolation, and the full cloud lifecycle still need verification.
+- Phone test fix (16 October): Expo Go reported missing native `ExpoTopicSubscriptionModule`, causing route-load warnings and an ErrorBoundary crash. Guarded notification package loading in Expo Go, disabled its reminder control there, and removed bare spacing strings that React Native rejected after startup. TypeScript, 34 logic tests and Android bundle export pass; phone rerun remains the practical confirmation.
 
 ## Phases 2–4 implementation and verification
 
@@ -41,7 +42,7 @@ The user authorized Phases 2–4 at **GPT-6.1 Sol / High**, then approved contin
 ### Pending checks (updated after Phase 6)
 
 - No Android SDK/emulator is configured here; the Android bundle compiled, but an APK and actual Android runtime have not been verified. Expo Go server/QR are prepared for the user's device test.
-- Clerk + Supabase connection, native auth deep links, provider configuration, replacement migration execution, and live cross-user access checks remain pending.
+- Basic Clerk/Supabase sign-in and creation work on the user's phone. Live cross-user access, persistence, and cloud lifecycle checks remain. The replacement migration was reported successful.
 - Phase 5 is now implemented locally; server authority and scheduled cloud reconciliation belong to the upcoming connection milestone.
 - Phase 6 native haptics/reminders are implemented but require Android device verification. Phase 7 release checks and dependency advisory resolution have not started.
 
@@ -94,6 +95,11 @@ Read `context.md`, `design.md`, `design-tokens.json`, and both files under `docs
 - Stopped before Phase 5 for the user's progress test. Native Android runtime/APK and live Supabase checks are pending.
 - User liked the result and authorized Phases 5–6, with a stop before Phase 7; selected Clerk for sign-in and Supabase connection after Phase 6.
 - Implemented and verified local lifecycle, motion/preferences, and notification planning/adapters. Updated all four context files and the testing/cloud handoffs. Stopped at the Phase 7 boundary.
+- User supplied the three public Clerk/Supabase environment values. Installed Clerk Expo, connected its custom auth flows and secure token cache, added Clerk-token Supabase access, prepared the replacement Clerk RLS/RPC migration, and passed 34 tests, TypeScript, and an Android Hermes export. The user reported successful migration execution on 16 October; provider setup and live data checks remain.
+- Phone testing found an unmatched `/sso-callback` route after Google authentication and a generic cloud create failure for both email and Google accounts. Added the OAuth return route and explicit redirect. The save failure was traced to a Supabase URL ending in `/rest/v1/`, which produced a doubled REST path; the app now normalizes it to the project origin. A direct request reached the deployed RPC and received the expected anonymous-access denial. Authenticated phone saving still needs retesting.
+- The user confirmed the corrected app, Google login, and cloud commitment creation now work on the phone. The basic connection milestone is working; do not infer cross-account isolation or lifecycle parity from this test.
+- A subsequent cloud load produced Supabase `42501`, `permission denied for function lockin_snapshot`. This RPC is granted to `authenticated` in the applied migration; an anonymous request was previously observed to receive the same error. Whether the failing phone request lacked a Clerk token during session restoration or had a token without the required role is unverified. Keep this as an open connection check; do not broaden the RPC grant to `anon`.
+- The user asked to discuss the remaining work before Phase 7 later. Documentation was updated; implementation is paused at the existing Phase 7 boundary pending their direction.
 
 Add dated entries here as each phase advances. Record meaningful scope or design changes and the Android build or test used to verify completion.
 

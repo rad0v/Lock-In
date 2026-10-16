@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+import { isClerkAPIResponseError, useSignIn, useSignUp } from "@clerk/expo";
+import { useSSO } from "@clerk/expo/experimental";
 import Svg, { Path } from "react-native-svg";
 import {
   Brand,
@@ -16,12 +18,18 @@ import {
   Title,
 } from "../components/ui";
 import { color } from "../theme";
-import { cloudConfigured, supabase } from "../lib/supabase";
+import { cloudConfigured } from "../lib/supabase";
 import { useSession } from "../state/session";
 
 WebBrowser.maybeCompleteAuthSession();
-export const redirectUri = () =>
-  makeRedirectUri({ scheme: "lockin", path: "auth/callback" });
+
+function clerkMessage(error: unknown, fallback: string) {
+  if (isClerkAPIResponseError(error))
+    return error.errors[0]?.longMessage || error.errors[0]?.message || fallback;
+  if (error && typeof error === "object" && "message" in error)
+    return String(error.message);
+  return fallback;
+}
 function GoogleMark() {
   return (
     <Svg width={19} height={19} viewBox="0 0 48 48">
@@ -46,9 +54,14 @@ function GoogleMark() {
 }
 export default function AuthScreen({ signup = false }: { signup?: boolean }) {
   const { enterDevice, error: sessionError } = useSession();
+  const signInFlow = useSignIn();
+  const signUpFlow = useSignUp();
+  const { startSSOFlow } = useSSO();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [code, setCode] = useState("");
+  const [awaitingCode, setAwaitingCode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -56,72 +69,88 @@ export default function AuthScreen({ signup = false }: { signup?: boolean }) {
   const submit = async () => {
     setError("");
     setMessage("");
+    if (awaitingCode) {
+      if (!/^\d{6}$/.test(code.trim()))
+        return setError("Enter the 6-digit code from your email.");
+      setBusy(true);
+      try {
+        const result = await signUpFlow.signUp.verifications.verifyEmailCode({
+          code: code.trim(),
+        });
+        if (result.error) throw result.error;
+        await signUpFlow.signUp.finalize();
+      } catch (cause) {
+        setError(
+          clerkMessage(cause, "That code could not be verified. Try again."),
+        );
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (!/^\S+@\S+\.\S+$/.test(email.trim()))
       return setError("Enter a valid email address.");
     if (password.length < 8)
       return setError("Use a password with at least 8 characters.");
     if (signup && password !== confirm)
       return setError("Your passwords do not match.");
-    if (!supabase)
-      return setError(
-        "Account sign-in is not connected yet. Continue on this device to try LockIn.",
-      );
     setBusy(true);
     try {
       if (signup) {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
+        const result = await signUpFlow.signUp.password({
+          emailAddress: email.trim(),
           password,
-          options: { emailRedirectTo: redirectUri() },
         });
-        if (error) throw error;
-        if (!data.session)
-          setMessage(
-            "Check your email to confirm your account, then return here to sign in.",
-          );
+        if (result.error) throw result.error;
+        const sent = await signUpFlow.signUp.verifications.sendEmailCode();
+        if (sent.error) throw sent.error;
+        setAwaitingCode(true);
+        setMessage("We sent a 6-digit verification code to your email.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+        const result = await signInFlow.signIn.password({
+          emailAddress: email.trim(),
           password,
         });
-        if (error) throw error;
+        if (result.error) throw result.error;
+        const finalized = await signInFlow.signIn.finalize();
+        if (finalized.error) throw finalized.error;
       }
-    } catch {
+    } catch (cause) {
       setError(
-        signup
-          ? "Could not create your account. Check your details and try again."
-          : "Could not sign in. Check your email and password, then retry.",
+        clerkMessage(
+          cause,
+          signup
+            ? "Could not create your account. Check your details and try again."
+            : "Could not sign in. Check your email and password, then retry.",
+        ),
       );
     } finally {
       setBusy(false);
     }
   };
   const google = async () => {
-    if (!supabase)
-      return setError(
-        "Google sign-in is not connected yet. Continue on this device to try LockIn.",
-      );
     setError("");
     setBusy(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: redirectUri(), skipBrowserRedirect: true },
+      const result = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl: makeRedirectUri({
+          scheme: "lockin",
+          path: "sso-callback",
+        }),
       });
-      if (error || !data.url) throw error;
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        redirectUri(),
+      if (
+        !result.createdSessionId &&
+        result.authSessionResult?.type !== "cancel"
+      )
+        throw new Error("Google sign-in is incomplete.");
+    } catch (cause) {
+      setError(
+        clerkMessage(
+          cause,
+          "Google sign-in could not finish. Please try again.",
+        ),
       );
-      if (result.type === "success") {
-        const code = new URL(result.url).searchParams.get("code");
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
-        }
-      }
-    } catch {
-      setError("Google sign-in could not finish. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -186,35 +215,48 @@ export default function AuthScreen({ signup = false }: { signup?: boolean }) {
           gap: 16,
         }}
       >
-        <Field
-          pill
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-        />
-        <Field
-          pill
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete={signup ? "new-password" : "current-password"}
-        />
-        {signup && (
+        {awaitingCode ? (
           <Field
             pill
-            placeholder="Confirm password"
-            value={confirm}
-            onChangeText={setConfirm}
-            secureTextEntry
+            placeholder="6-digit verification code"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            autoComplete="one-time-code"
           />
+        ) : (
+          <>
+            <Field
+              pill
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
+            <Field
+              pill
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete={signup ? "new-password" : "current-password"}
+            />
+            {signup && (
+              <Field
+                pill
+                placeholder="Confirm password"
+                value={confirm}
+                onChangeText={setConfirm}
+                secureTextEntry
+              />
+            )}
+          </>
         )}
         {(error || sessionError) && (
           <ErrorNote message={error || sessionError!} />
-        )}{" "}
+        )}
         {!!message && (
           <Label size={13} style={{ color: color.success.foreground }}>
             {message}
@@ -222,22 +264,30 @@ export default function AuthScreen({ signup = false }: { signup?: boolean }) {
         )}
         <View style={{ marginTop: 8 }}>
           <Button
-            title={signup ? "START MY PROMISE" : "ENTER FOCUS MODE"}
+            title={
+              awaitingCode
+                ? "VERIFY EMAIL"
+                : signup
+                  ? "START MY PROMISE"
+                  : "ENTER FOCUS MODE"
+            }
             onPress={() => void submit()}
             loading={busy}
           />
         </View>
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => router.replace(signup ? "/sign-in" : "/sign-up")}
-        >
-          <Label size={12} style={{ textAlign: "center" }}>
-            {signup ? "Already have an account? " : "New here? "}
-            <Label size={12} style={{ textDecorationLine: "underline" }}>
-              {signup ? "Sign in." : "Start a new promise."}
+        {!awaitingCode && (
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.replace(signup ? "/sign-in" : "/sign-up")}
+          >
+            <Label size={12} style={{ textAlign: "center" }}>
+              {signup ? "Already have an account? " : "New here? "}
+              <Label size={12} style={{ textDecorationLine: "underline" }}>
+                {signup ? "Sign in." : "Start a new promise."}
+              </Label>
             </Label>
-          </Label>
-        </Pressable>
+          </Pressable>
+        )}
         {!signup && cloudConfigured && (
           <Pressable
             accessibilityRole="link"
@@ -251,59 +301,75 @@ export default function AuthScreen({ signup = false }: { signup?: boolean }) {
             </Label>
           </Pressable>
         )}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 24 }}>
-          <View
-            style={{ height: 1, flex: 1, backgroundColor: color.surface.card }}
-          />
-          <Label size={11} muted>
-            OR
-          </Label>
-          <View
-            style={{ height: 1, flex: 1, backgroundColor: color.surface.card }}
-          />
-        </View>
-        <Pressable
-          onPress={() => void google()}
-          disabled={busy}
-          accessibilityRole="button"
-          style={{
-            backgroundColor: "#FFFFFF",
-            borderRadius: 40,
-            minHeight: 56,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            boxShadow: "0px 4px 3px rgba(37,31,26,0.25)",
-          }}
-        >
-          <GoogleMark />
-          <Label size={13} bold>
-            Continue with Google
-          </Label>
-        </Pressable>
-        <Pressable
-          disabled={busy}
-          accessibilityRole="button"
-          onPress={() => {
-            setBusy(true);
-            void enterDevice().catch(() => {
-              setError("Could not open local storage. Please try again.");
-              setBusy(false);
-            });
-          }}
-          style={{ paddingTop: 4, paddingBottom: 4 }}
-        >
-          <Label
-            size={12}
-            style={{ textAlign: "center", textDecorationLine: "underline" }}
+        {!awaitingCode && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 24 }}>
+            <View
+              style={{
+                height: 1,
+                flex: 1,
+                backgroundColor: color.surface.card,
+              }}
+            />
+            <Label size={11} muted>
+              OR
+            </Label>
+            <View
+              style={{
+                height: 1,
+                flex: 1,
+                backgroundColor: color.surface.card,
+              }}
+            />
+          </View>
+        )}
+        {!awaitingCode && (
+          <Pressable
+            onPress={() => void google()}
+            disabled={busy}
+            accessibilityRole="button"
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderRadius: 40,
+              minHeight: 56,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              boxShadow: "0px 4px 3px rgba(37,31,26,0.25)",
+            }}
           >
-            Continue on this device
+            <GoogleMark />
+            <Label size={13} bold>
+              Continue with Google
+            </Label>
+          </Pressable>
+        )}
+        {!awaitingCode && (
+          <Pressable
+            disabled={busy}
+            accessibilityRole="button"
+            onPress={() => {
+              setBusy(true);
+              void enterDevice().catch(() => {
+                setError("Could not open local storage. Please try again.");
+                setBusy(false);
+              });
+            }}
+            style={{ paddingTop: 4, paddingBottom: 4 }}
+          >
+            <Label
+              size={12}
+              style={{ textAlign: "center", textDecorationLine: "underline" }}
+            >
+              Continue on this device
+            </Label>
+          </Pressable>
+        )}
+        {!awaitingCode && (
+          <Label size={11} muted style={{ textAlign: "center" }}>
+            Your commitments stay on this device.
           </Label>
-        </Pressable>
-        <Label size={11} muted style={{ textAlign: "center" }}>
-          Your commitments stay on this device.
-        </Label>
+        )}
       </View>
       <ModalCard
         title="Language"

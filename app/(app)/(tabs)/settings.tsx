@@ -173,9 +173,9 @@ export default function Settings() {
           />
         </View>
         <Label size={13} muted>
-          {notificationsSupported
-            ? "A quiet nudge at your chosen time in each commitment’s time zone. Reminders stop when you pause, finish, or break an attempt."
-            : "Reminders are available in the Android app. You can choose your time here."}
+            {notificationsSupported
+              ? "A quiet nudge at your chosen time in each commitment’s time zone. Reminders stop when you pause, finish, or break an attempt."
+              : "Reminders need a LockIn development build on Android. You can choose your time here."}
         </Label>
         <Field
           label="Reminder time (24-hour)"

@@ -160,6 +160,6 @@ Reduced motion: remove translation, scaling, springing, and layout movement; use
 - Calendar distinguishes successful, missed and frozen dates; timeline ordinal freezes with pauses and at the logical failure date. Completed rewards use the existing card palette and an earned indicator.
 - Shared motion follows the Phase 1 timing direction: 80/120 ms press, 140 ms selection, 220/160 ms wizard, 200/150 ms modal, 200/160/220 ms list entry/exit/layout, 180 ms state fade, 240 ms progress and 280 ms lock settle. Reward/count/check feedback uses a restrained 300 ms settle. Native stack timing remains platform-dependent.
 - System reduced-motion changes are observed while running. Users can also force reduced motion; translation/scale/layout motion is removed and fades are at most 80 ms. Haptics have an independent persisted switch and are emitted only after confirmed writes for success/failure actions.
-- Settings adds opt-in reminders, time entry, native test reminder, permission/retry status and device settings access. The browser shows that notification delivery is available in the Android app.
+- Settings adds opt-in reminders, time entry, native test reminder, permission/retry status and device settings access. The browser and Expo Go explain that delivery requires a compatible LockIn development build on the test phone.
 - Phase 6 screenshots are stored in `artifacts/phase-6/`. Native font/geometry, animation feel and haptic delivery remain Android device checks; no pixel-perfect native claim is made.
 

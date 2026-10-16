@@ -40,10 +40,13 @@ type Context = {
 };
 const DataContext = createContext<Context | null>(null);
 export function DataProvider({ children }: React.PropsWithChildren) {
-  const { identity } = useSession();
+  const { identity, getToken } = useSession();
   const repository = useMemo(
-    () => (identity?.mode === "cloud" ? cloudRepository() : localRepository()),
-    [identity?.key, identity?.mode],
+    () =>
+      identity?.mode === "cloud"
+        ? cloudRepository(getToken)
+        : localRepository(),
+    [identity?.key, identity?.mode, getToken],
   );
   const [snapshot, setSnapshot] = useState<Snapshot>(emptySnapshot);
   const [loading, setLoading] = useState(true);

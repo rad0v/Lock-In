@@ -13,7 +13,7 @@ Open [the browser preview](http://127.0.0.1:4173) while its server runs, or scan
 5. Reopen a commitment after an unfinished due date's 24-hour catch-up window. It becomes Broken with the original failed date recorded. A pause does not erase previous obligations.
 6. Complete all requirements for a short commitment. Completion happens after its final planned date ends, or on a successful final catch-up save. Find it under History → Past attempts with Reward unlocked. It leaves the current Focus list.
 7. In Settings, toggle haptics independently from Reduce motion; reload to verify persistence. System reduced motion also applies. Test modal dismiss/reopen and rapid option/filter changes.
-8. On Android, enable Daily reminders and grant permission. Choose a 24-hour time and send a test reminder. Check foreground, background, lock-screen and cold-start tap routing. Deny/revoke permission and confirm the rest of the app remains usable.
+8. In a LockIn development build on Android, enable Daily reminders and grant permission. Choose a 24-hour time and send a test reminder. Check foreground, background, lock-screen and cold-start tap routing. Deny/revoke permission and confirm the rest of the app remains usable. Expo Go on the test phone cannot load the installed notification native module, so this control stays disabled there.
 9. Check reminder cancellation after logging, pause, failure, completion, time changes and leaving the local session. Resume recreates eligible reminders. A notification tap opens the relevant commitment/date; expired dates remain read-only.
 
 ## Verified automatically
@@ -31,7 +31,7 @@ Logic tests cover exact grace boundaries, DST, custom/rest dates, partial quotas
 
 ## Reminder behavior and limits
 
-- Local notifications are optional and native-only. Browser settings accurately explain availability. Expo SDK 57 documents local notifications as available in Expo Go; remote push is not used.
+- Local notifications are optional and native-only. The installed Expo Go binary on the test phone lacks `ExpoTopicSubscriptionModule` required by this project's notification package. LockIn skips loading notifications in Expo Go and disables the reminder switch there. Use a LockIn development build to test reminder delivery; remote push is not used.
 - The default time is 20:00 in each attempt's fixed time zone. A pending date may have one same-day and one catch-up nudge. Same-time nudges for one attempt are deduplicated, choosing the oldest due date.
 - Planning looks ahead up to 30 days and retains the earliest 60 requests. It stops before the earliest unresolved failure deadline, avoiding stale reminders after an unobserved expiry. Opening/checking in refreshes this horizon. A nonexistent DST wall time is skipped.
 - Pause, terminal status, disabled reminders and sign-out clear eligible pending requests. The scheduler preserves unchanged requests and safely retries partial native failures. Notifications never contain habit names or reflections.
@@ -42,7 +42,9 @@ Logic tests cover exact grace boundaries, DST, custom/rest dates, partial quotas
 
 No Android SDK/emulator is configured here. The successful Hermes export proves bundling, not APK installation, actual notification delivery, native animation smoothness or vibration. Those need a physical device. Also check Android back/keyboard/safe areas and final font/geometry against the references.
 
-Clerk sign-in, email/Google flows, secure token restoration, native redirects, live Supabase transactions and cross-user access are not connected or tested. See [the cloud handoff](cloud-integration.md). Device-to-cloud migration and an offline cloud write queue are not implemented.
+The user reports working Clerk login and cloud commitment creation on the phone after the callback and Supabase URL fixes. Secure token restoration, sign-out/sign-in persistence, full cloud lifecycle, and cross-user isolation still need focused checks. See [the cloud handoff](cloud-integration.md). Device-to-cloud migration and an offline cloud write queue are not implemented.
+
+A later `Load commitments` call returned `42501` (`permission denied for function lockin_snapshot`). On the next authorized cloud test, record whether this happens only briefly after sign-in/startup or on every refresh. The request must use a Clerk token with Supabase's `authenticated` role; the exact cause on the phone has not yet been established. Keep the function restricted to authenticated users.
 
 ## Phase 7 boundary
 

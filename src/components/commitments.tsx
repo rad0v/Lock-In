@@ -323,7 +323,7 @@ export function LogModal({
           />
         </>
       )}
-      {!!error && <ErrorNote message={error} />}{" "}
+      {!!error && <ErrorNote message={error} />}
       {!enabled && (
         <Label size={12} muted>
           This date is outside its check-in window.

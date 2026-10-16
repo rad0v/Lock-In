@@ -1,45 +1,58 @@
-import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { createReminderScheduler } from "../data/reminder-scheduler";
-export const notificationsSupported = true;
+type NotificationApi = typeof import("expo-notifications");
+// Expo Go can have an older native notifications binary than this project's
+// installed JS package. Loading the package there crashes route evaluation.
+export const notificationsSupported = Constants.appOwnership !== "expo";
 const channelId = "lockin-reminders";
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+let loaded: NotificationApi | null = null;
+function notifications(): NotificationApi {
+  if (!notificationsSupported)
+    throw new Error("Reminders require a LockIn development build on Android.");
+  if (!loaded) {
+    loaded = require("expo-notifications") as NotificationApi;
+    loaded.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }
+  return loaded;
+}
 async function channel() {
   if (Platform.OS === "android")
-    await Notifications.setNotificationChannelAsync(channelId, {
+    await notifications().setNotificationChannelAsync(channelId, {
       name: "Commitment reminders",
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: notifications().AndroidImportance.DEFAULT,
       enableVibrate: false,
       sound: null,
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
+      lockscreenVisibility: notifications().AndroidNotificationVisibility.PRIVATE,
     });
 }
 export async function notificationPermission(
   request = false,
 ): Promise<boolean> {
+  if (!notificationsSupported) return false;
   if (request) await channel();
-  let permission = await Notifications.getPermissionsAsync();
+  let permission = await notifications().getPermissionsAsync();
   if (!permission.granted && request && permission.canAskAgain)
-    permission = await Notifications.requestPermissionsAsync();
+    permission = await notifications().requestPermissionsAsync();
   return permission.granted;
 }
 export const syncReminders = createReminderScheduler({
   list: async () =>
-    (await Notifications.getAllScheduledNotificationsAsync()).map((n) => ({
+    (await notifications().getAllScheduledNotificationsAsync()).map((n) => ({
       id: n.identifier,
       key: n.content.data?.lockinKey as string | undefined,
     })),
-  cancel: (id) => Notifications.cancelScheduledNotificationAsync(id),
+  cancel: (id) => notifications().cancelScheduledNotificationAsync(id),
   schedule: async (r) => {
     await channel();
-    await Notifications.scheduleNotificationAsync({
+    await notifications().scheduleNotificationAsync({
       identifier: r.key,
       content: {
         title: "A moment to LockIn",
@@ -47,7 +60,7 @@ export const syncReminders = createReminderScheduler({
         data: { lockinKey: r.key, attemptId: r.attemptId, date: r.date },
       },
       trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        type: notifications().SchedulableTriggerInputTypes.DATE,
         date: new Date(r.at),
         channelId,
       },
@@ -55,16 +68,19 @@ export const syncReminders = createReminderScheduler({
   },
 });
 export async function clearReminders() {
+  if (!notificationsSupported) return;
   await syncReminders([]);
-  await Notifications.dismissAllNotificationsAsync();
-  await Notifications.clearLastNotificationResponseAsync();
+  await notifications().dismissAllNotificationsAsync();
+  await notifications().clearLastNotificationResponseAsync();
 }
 export async function testReminder() {
+  if (!notificationsSupported)
+    throw new Error("Reminders require a LockIn development build on Android.");
   if (!(await notificationPermission(true)))
     throw new Error(
       "Allow notifications in your device settings to receive reminders.",
     );
-  await Notifications.scheduleNotificationAsync({
+  await notifications().scheduleNotificationAsync({
     identifier: "lockin:test",
     content: {
       title: "Your LockIn reminder",
@@ -72,7 +88,7 @@ export async function testReminder() {
       data: { lockinKey: "lockin:test" },
     },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      type: notifications().SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: 5,
       channelId,
     },
@@ -81,9 +97,11 @@ export async function testReminder() {
 export function listenForReminder(
   onOpen: (attemptId: string, date: string) => void,
 ) {
+  if (!notificationsSupported) return () => {};
   let alive = true;
   let handled = "";
-  const open = (response: Notifications.NotificationResponse | null) => {
+  const api = notifications();
+  const open = (response: import("expo-notifications").NotificationResponse | null) => {
     if (!alive || !response) return;
     const request = response.notification.request;
     if (handled === request.identifier) return;
@@ -91,12 +109,12 @@ export function listenForReminder(
     const data = request.content.data;
     if (typeof data?.attemptId === "string" && typeof data?.date === "string")
       onOpen(data.attemptId, data.date);
-    void Notifications.clearLastNotificationResponseAsync().catch(() => {});
+    void api.clearLastNotificationResponseAsync().catch(() => {});
   };
-  void Notifications.getLastNotificationResponseAsync()
+  void api.getLastNotificationResponseAsync()
     .then(open)
     .catch(() => {});
-  const listener = Notifications.addNotificationResponseReceivedListener(open);
+  const listener = api.addNotificationResponseReceivedListener(open);
   return () => {
     alive = false;
     listener.remove();

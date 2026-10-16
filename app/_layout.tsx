@@ -9,6 +9,8 @@ import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
 import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
 import { Inter_600SemiBold } from "@expo-google-fonts/inter/600SemiBold";
 import { Inter_700Bold } from "@expo-google-fonts/inter/700Bold";
+import { ClerkProvider } from "@clerk/expo";
+import { tokenCache } from "@clerk/expo/token-cache";
 import { SessionProvider, useSession } from "../src/state/session";
 import { color } from "../src/theme";
 import { PreferencesProvider, usePreferences } from "../src/state/preferences";
@@ -50,6 +52,7 @@ function Routes() {
       </Stack.Protected>
       <Stack.Screen name="reset-password" />
       <Stack.Screen name="auth/callback" />
+      <Stack.Screen name="sso-callback" />
     </Stack>
   );
 }
@@ -61,14 +64,19 @@ export default function Root() {
     Inter_700Bold,
   });
   if (!loaded && !error) return null;
+  const clerkKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  if (!clerkKey)
+    throw new Error("EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is missing.");
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <PreferencesProvider>
-        <SessionProvider>
-          <Routes />
-        </SessionProvider>
-      </PreferencesProvider>
-    </SafeAreaProvider>
+    <ClerkProvider publishableKey={clerkKey} tokenCache={tokenCache}>
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <PreferencesProvider>
+          <SessionProvider>
+            <Routes />
+          </SessionProvider>
+        </PreferencesProvider>
+      </SafeAreaProvider>
+    </ClerkProvider>
   );
 }
